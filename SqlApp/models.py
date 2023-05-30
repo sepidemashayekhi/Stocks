@@ -85,7 +85,7 @@ CREATE TABLE GoodsGroup(
     GoodsGroupId BIGINT NOT NULL PRIMARY KEY IDENTITY ,
     Title NVARCHAR(50) NOT NULL,
     IsActive BIT DEFAULT 1,
-    ParentId BIGINT FOREIGN KEY REFERENCES GoodsGroup(GoodsGroupId)
+    ParentId BIGINT FOREIGN KEY REFERENCES GoodsGroup(GoodsGroupId) NUll
     );
 """
 
@@ -166,10 +166,25 @@ CREATE TABLE DocItem(
 """
 
 
+goodsGroupStock="""
+CREATE TABLE GoodsGroupStock(
+    GoodsGroupStockId BIGINT NOT NULL IDENTITY PRIMARY KEY,
+    StockId BIGINT FOREIGN KEY REFERENCES Stock(StockId),
+    GoodSGroupId BIGINT FOREIGN KEY REFERENCES GoodSGroup(GoodSGroupId),
+    IsActive BIT DEFAULT 1,
+    Discription NVARCHAR(300) NULL,
+    CreateDate DATETIME DEFAULT GETDATE(),
+    CreateUser NVARCHAR(150) NULL,
+    ModifireDate DATETIME NULL,
+    ModifierUser NVARCHAR(150) NULL
+    );
+"""
+
+
 
 querySintacs =FactoryTable+StockTable+StockPeriodtable+cherckTable+unitType\
     +goodsGroupTable+goodsTable+goodsUnitTable+docTypeTable+docHeaderTypeTable\
-    +docHeaderTable+docItemTable
+    +docHeaderTable+docItemTable+goodsGroupStock
 
 cursor.execute(querySintacs)
 cursor.commit()

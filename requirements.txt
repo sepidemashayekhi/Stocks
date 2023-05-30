@@ -1,2 +1,3 @@
 fastapi[all]
 pyodbc
+pandas
