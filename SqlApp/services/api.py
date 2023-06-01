@@ -6,7 +6,7 @@ import persian
 from  services.Items import GoudsGroupItem , Goods , UnitTyp , GoodsUnitType , Factory , Stock , \
     stockPeriodItem , StockClerck , docType , Docheadertype , GoodsGroupStock
 
-from services.functions import getId , insertTableValue ,getMax 
+from services.functions import getId , insertTableValue ,getMax ,returenAll
 from services.errorConfig import errorList
 
 
@@ -49,9 +49,7 @@ def goodsGroup(item:GoudsGroupItem,response:Response):
 @app.post('/goods/')
 def goods(item:Goods,response:Response):
 
-    goodsGroupId=getId(tableName='GoodsGroup',title=item.GoodsGroupName,condition='Title')
-
-    result=insertTableValue(tablename='Goods',columnsName='(Title,GoodsGroupId)',values=f"(N'{item.title}', {goodsGroupId})")
+    result=insertTableValue(tablename='Goods',columnsName='(Title,GoodsGroupId)',values=f"(N'{item.title}', {item.GoodsGroupId})")
 
     if not result:
         
@@ -94,10 +92,7 @@ def unitType(item:UnitTyp,response:Response):
 @app.post('/goodsUnitType/')
 def goodsUnitType(item:GoodsUnitType,response:Response):
 
-    goodsId=getId(tableName='Goods',title=item.goodsName,condition='Title')
-    unitTypeId=getId(tableName='UnitType',title=item.unitTypeName,condition='Title')
-
-    result=insertTableValue(tablename='GoodsUnit',columnsName='(GoodsId,UnitTypeId)',values=(goodsId,unitTypeId))
+    result=insertTableValue(tablename='GoodsUnit',columnsName='(GoodsId,UnitTypeId)',values=(item.goodsId,item.unitTypeId))
     if not result:
         returnData['message']=errorList[101]
         returnData['code']=400
@@ -138,12 +133,11 @@ def factory(item:Factory,response:Response):
 @app.post('/Stock/')
 def stock(item:Stock,response:Response):
 
-    factoryId=getId(tableName='factory',title=item.factoryName,condition='FactoryName')
     StockCode=getMax(tableName='Stock',columnsName='StockId')
     StockCode=100 + int(StockCode)
 
     result=insertTableValue(tablename="stock",columnsName="(Title,FactoryId,StockAddress,StockDescription,PhoneNumber,StockCode, CreatUser)",
-                            values=f"(N'{item.title}' , {factoryId} ,N'{item.address}',N'{item.description}',{item.phoneNumber},{StockCode}, 'Admin' )")
+                            values=f"(N'{item.title}' , {item.factoryId} ,N'{item.address}',N'{item.description}',{item.phoneNumber},{StockCode}, 'Admin' )")
     if not result:
         returnData['message']=errorList[101]
         returnData['code']=400
@@ -162,12 +156,9 @@ def stock(item:Stock,response:Response):
 @app.post('/stockPeriod/')
 def stockPeriod(item:stockPeriodItem , response:Response):
 
-    stockId=getId(tableName='Stock',title=item.stockName,condition='Title')
-
-
     result=insertTableValue(tablename='StockPeriod', 
                             columnsName='(Title , StockId ,FromDate,ToDate,CreatorUser)',
-                            values=f"(N'{item.title}' , {stockId} , {item.fromDate} , {item.toDate} ,'Admin')" )
+                            values=f"(N'{item.title}' , {item.stockId} , {item.fromDate} , {item.toDate} ,'Admin')" )
     
     if not result:
         returnData['message']=errorList[101]
@@ -186,14 +177,12 @@ def stockPeriod(item:stockPeriodItem , response:Response):
 @app.post('/stockClerck/')
 def clerck(item:StockClerck, response:Response):
     
-    stockId=getId(tableName='Stock',title=item.stockName , condition='Title')
-    
     personalCode=getMax(tableName='StockClerck',columnsName='StockClerckId')
     personalCode = str(personalCode)+'11'
 
     result =insertTableValue(tablename='StockClerck',
                              columnsName=f"(StockId , FullName , PersonalCode , NationalCode , HomeAddress , PhoneNumber )" , 
-                             values=f"({stockId},N'{item.fullName}' ,'{personalCode}' , '{item.nationalCode}', N'{item.address}' , '{item.phoneNumber}')"
+                             values=f"({item.stockId},N'{item.fullName}' ,'{personalCode}' , '{item.nationalCode}', N'{item.address}' , '{item.phoneNumber}')"
                              )
 
     if not result:
@@ -232,11 +221,9 @@ def docTypes(item:docType , response:Response):
 @app.post('/docHeaderType/')
 def docHeaderType(item:Docheadertype, response:Response):
     
-    docTypeId=getId(tableName='Doctype', title=item.doctypeName , condition='Title')
-
     result=insertTableValue(tablename='DocHeaderType' ,
                      columnsName="(DocTypeId ,Title)" , 
-                     values=f"({docTypeId} , N'{item.title}')")
+                     values=f"({item.doctypeId} , N'{item.title}')")
     
     if not result:
         returnData['message']=errorList[101]
@@ -255,13 +242,9 @@ def docHeaderType(item:Docheadertype, response:Response):
 @app.post('/goodsGroupStock/')
 def goodsGroupStock(item:GoodsGroupStock , response:Response):
     
-    stockId=getId(tableName='Stock',title=item.stockName , condition='Title')
-
-    goodsGroupId = getId(tableName='GoodsGroup' , title=item.goosGroupName , condition='Title')
-
     result=insertTableValue(tablename='GoodsGroupStock' , 
                             columnsName="(StockId,GoodSGroupId,Discription,CreateUser)",
-                            values=f"( {stockId} , {goodsGroupId} , N'{item.discription}' , 'Admin' )"
+                            values=f"( {item.stockId} , {item.goodsGroupId} , N'{item.discription}' , 'Admin' )"
                             )
     
     if not result:
@@ -277,5 +260,30 @@ def goodsGroupStock(item:GoodsGroupStock , response:Response):
     response.status_code=status.HTTP_201_CREATED
     return returnData
     
+
+@app.get('/valuesList/')
+def valuesList(tablename , response:Response):
     
+    results={f'{tablename}':[]}
+    data=returenAll(tableName=tablename)
+
+    for i in range(len(data.index)):
+        
+        result=data.iloc[i].to_dict()
+        results[f'{tablename}'].append(result)
+
+
+    if not results[f'{tablename}']:
+        returnData['message']=errorList[102]
+        returnData['code']=400
+        returnData['status']=False
+        response.status_code=status.HTTP_400_BAD_REQUEST
+        return returnData
+    
+    returnData['message']=errorList[100]
+    returnData['data']=results
+    returnData['code']=200
+    returnData['status']=True    
+    response.status_code=status.HTTP_200_OK
+    return returnData
     

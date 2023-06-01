@@ -18,12 +18,12 @@ def insertTableValue(tablename:str, columnsName, values):
     INSERT INTO {tablename} {columnsName} VALUES {values};
     """
     print(queryStr)
-    # try:
-    if True:
+    try:
+    # if True:
         conect.cursor.execute(queryStr)
         conect.cursor.commit()
-    # except:
-    #     return False
+    except:
+        return False
 
     
     return True
@@ -37,6 +37,16 @@ def getMax(tableName:str,columnsName:str):
         max_=pd.read_sql(quryStr,conect.cnxn).iloc[0,0]
     except:
         max_= 0
+    if not max_:
+        max_=0
+
     return max_
 
+def returenAll(tableName):
+
+    queyStr=f"""
+    SELECT * FROM {tableName};
+    """
+    data = pd.read_sql_query(queyStr,conect.cnxn)
+    return data
 

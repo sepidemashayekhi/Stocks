@@ -5,8 +5,9 @@ class GoudsGroupItem(BaseModel):
     title : str
 
 class Goods(BaseModel):
+    
     title : str
-    GoodsGroupName : str
+    GoodsGroupId : int
 
 class UnitTyp(BaseModel):
     title : str
@@ -15,8 +16,8 @@ class UnitTyp(BaseModel):
     isDefault : bool
     
 class GoodsUnitType(BaseModel):
-    goodsName:str
-    unitTypeName:str
+    goodsId : int
+    unitTypeId : int
 
 class Factory(BaseModel):
     name:str
@@ -25,19 +26,19 @@ class Factory(BaseModel):
 
 class Stock(BaseModel):
     title:str
-    factoryName:str
+    factoryId:int
     address: str
     phoneNumber :str
     description :str
 
 class stockPeriodItem(BaseModel):
     title : str
-    stockName: str
+    stockId: int
     fromDate: str
     toDate :str
 
 class StockClerck(BaseModel):
-    stockName:str
+    stockId:int
     fullName : str
     nationalCode : str
     address : str
@@ -47,12 +48,12 @@ class docType(BaseModel):
     title:str
 
 class Docheadertype(BaseModel):
-    doctypeName:str
+    doctypeId:int
     title : str
 
 class GoodsGroupStock(BaseModel):
-    stockName : str
-    goosGroupName : str
+    stockId : int
+    goosGroupId : int
     discription : str
     
 
