@@ -9,9 +9,9 @@ cursor=conection.cursor
 FactoryTable="""
 CREATE TABLE Factory(
     FactoryId BIGINT NOT NULL IDENTITY PRIMARY KEY ,
-    FactoryName NVARCHAR(200) NULL ,
+    FactoryName NVARCHAR(200) NULL UNIQUE,
     FactoryAddress NVARCHAR(250) NULL ,
-    PhoneNumber VARCHAR(11) NULL,
+    PhoneNumber VARCHAR(17) NULL,
     );
 """
 
@@ -22,9 +22,10 @@ CREATE TABLE Stock(
     StockId BIGINT NOT NULL IDENTITY PRIMARY KEY,
     FactoryId BIGINT FOREIGN KEY REFERENCES Factory(FactoryId),
     Title NVARCHAR(100) NULL,
-    IsActive BIT DEFAULT 0,
+    StockCode BIGINT NOT NULL UNIQUE,
+    IsActive BIT DEFAULT 1,
     StockAddress NVARCHAR(250) NULL ,
-    PhoneNumber VARCHAR(11) NULL ,
+    PhoneNumber VARCHAR(20) NULL ,
     StockDescription NVARCHAR(350) NULL,
     CreatUser NVARCHAR(150) NULL,
     CreateDate DATETIME DEFAULT GETDATE(),
@@ -58,10 +59,10 @@ CREATE TABLE StockClerck(
     StockClerckId BIGINT NOT NULL IDENTITY PRIMARY KEY,
     StockId BIGINT FOREIGN KEY REFERENCES  Stock(StockId),
     FullName NVARCHAR(150) NOT NULL,
-    PersonalCode VARCHAR(10) UNIQUE NOT NULL,
-    NationalCode VARCHAR(10) UNIQUE NOT NULL,
+    PersonalCode VARCHAR(20) UNIQUE NOT NULL,
+    NationalCode VARCHAR(20) UNIQUE NOT NULL,
     HomeAddress NVARCHAR(250) NULL,
-    PhoneNumber VARCHAR(11) NULL
+    PhoneNumber VARCHAR(20) NULL
     );
 """
 
@@ -70,7 +71,7 @@ CREATE TABLE StockClerck(
 unitType="""
 CREATE TABLE UnitType(
     UnitTypeId BIGINT PRIMARY KEY IDENTITY NOT NULL,
-    Tiltle NVARCHAR(50) NOT NULL,
+    Title NVARCHAR(50) NOT NULL UNIQUE,
     IsActive BIT DEFAULT 1,
     Coefficient INT NOT NULL,
     IsPrimary BIT DEFAULT 0,
@@ -83,7 +84,7 @@ CREATE TABLE UnitType(
 goodsGroupTable="""
 CREATE TABLE GoodsGroup(
     GoodsGroupId BIGINT NOT NULL PRIMARY KEY IDENTITY ,
-    Title NVARCHAR(50) NOT NULL,
+    Title NVARCHAR(50) NOT NULL UNIQUE,
     IsActive BIT DEFAULT 1,
     ParentId BIGINT FOREIGN KEY REFERENCES GoodsGroup(GoodsGroupId) NUll
     );
@@ -93,7 +94,7 @@ CREATE TABLE GoodsGroup(
 goodsTable="""
 CREATE TABLE Goods(
     GoodsId BIGINT PRIMARY KEY NOT NULL IDENTITY,
-    Title NVARCHAR(150) NOT NULL ,
+    Title NVARCHAR(150) NOT NULL UNIQUE,
     GoodsGroupId BIGINT FOREIGN KEY REFERENCES GoodsGroup(GoodsGroupId),
     IsActive BIT DEFAULT 1
     );
@@ -113,7 +114,7 @@ CREATE TABLE GoodsUnit(
 docTypeTable="""
 CREATE TABLE Doctype(
     DocTypeId BIGINT NOT NULL PRIMARY KEY IDENTITY,
-    Title NVARCHAR(50) NOT NULL,
+    Title NVARCHAR(50) NOT NULL UNIQUE,
     IsActive BIT DEFAULT 1
     );
 """
@@ -124,7 +125,7 @@ docHeaderTypeTable="""
 CREATE TABLE DocHeaderType(
     DocHeaderTypeId BIGINT NOT NULL IDENTITY PRIMARY KEY,
     DocTypeId BIGINT FOREIGN KEY REFERENCES DocType(DocTypeId),
-    Title NVARCHAR(50) NOT NULL,
+    Title NVARCHAR(50) NOT NULL UNIQUE,
     IsActive BIT DEFAULT 1,
     );
 """

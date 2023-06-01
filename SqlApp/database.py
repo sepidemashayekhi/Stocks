@@ -1,5 +1,4 @@
 import pyodbc
-
 class Conection:
     def __init__(self):
         self.cnxnStr=("Driver={SQL Server};"
