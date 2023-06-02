@@ -1,5 +1,5 @@
 
-from pydantic import BaseModel
+from pydantic import BaseModel 
 
 class GoudsGroupItem(BaseModel):
     title : str
@@ -56,5 +56,23 @@ class GoodsGroupStock(BaseModel):
     goosGroupId : int
     discription : str
     
+class DocHeader(BaseModel):
+
+    docHeaderTypeId: int
+    stockFrom : int
+    stockTo : int
+
+    transfereeUser : int
+    senderUser : int
+
+
+class CreateDoc(BaseModel):
+
+    StockFrom : int | None=None
+    StockTo : int 
+    TransfereeUser : int
+    SenderUse : int | None=None
+    GoodsInfo : list
+
 
 
