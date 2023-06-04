@@ -18,7 +18,7 @@ def insertTableValue(tablename:str, columnsName, values):
     queryStr=f"""
     INSERT INTO {tablename} {columnsName} OUTPUT INSERTED.{tablename}Id VALUES {values} ;
     """
-    print(queryStr,"===========")
+    # print(queryStr,"===========")
     # try:
     if True:
         conect.cursor.execute(queryStr)
@@ -80,7 +80,7 @@ def returnGoodsStock(stockId,goodsId=None):
     END AS result
     FROM DocHeader
     WHERE 
-    (StockTO = 1 OR StockFrom = 1)
+    (StockTO = {stockId} OR StockFrom = {stockId})
     ORDER BY DocHeaderId DESC;
     """
 
@@ -108,77 +108,132 @@ def returnGoodsStock(stockId,goodsId=None):
         WHERE DocHeaderId={HeaderId} ;
         """
     
-    # try:
-    if True:
+    try:
+    # if True:
         data=pd.read_sql_query(querStr,conect.cnxn)
-        print(len(data.index),"index of len data")
+    except:
+        return False
+    
     
     for i in range(len(data.index)):
         re={}
         goodID=data.iloc[i,0]
         goodInv=data.iloc[i,1]
-        re['GoodsiId']=int(goodID)
+        re['GoodsId']=int(goodID)
         re['goodInv']=int(goodInv)
         result["goodsInventory"].append(re)
         
-    print(result)
+    
     return result
 
 
-def inventoryGoods(inventory:list,goods):
-    for inv in inventory:
+
+def _checkInv(DocTypeId,DocHeaderId,goodsInfo,inventory,inventory2):
+
+    if isinstance(inventory,dict):
+        inventoryDict={}
+        for item in inventory.get("goodsInventory"):
+            inventoryDict[item['GoodsId']]=item['goodInv']
+    
+    if isinstance(inventory2,dict):
+        inventoryDict2={}
+        for item in inventory2.get("goodsInventory"):
+            inventoryDict2[item['GoodsId']]=item['goodInv'] 
         
-        invGoodId=inv.get('GoodsId')
-        goodsId=goods.get('GoodsId')
-
-        print(str(invGoodId),str(goodsId),'iorerbvehbv===========ejhcbjhbc=jehvbbbbbbbbbb=jvbjhbhjbjh')
-
-        if str(invGoodId)==str(goodsId):
-            return inv.get("Inventory")
-
-
-    
-
-def createDocquery(stockFrom,Stockto,transfereeUSER,senderUSER,StockPeriodId,goodsInfo):
-
-    if not stockFrom:
-        stockFrom=Stockto
-    
-    inventory=returnGoodsStock(stockFrom)
-
-    code=str(time.time()).split('.')[0]
-    
-    
-
-    
     for goods in goodsInfo:
-
+       
         GoodsId=goods.get("GoodsId")
         Quantity=goods.get('Quantity')
         GoodsUnit=goods.get('GoodsUnitId')
+       
+        if not inventory  and DocTypeId !=3:
+                
+                insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryTO)",
+                                    values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {Quantity} )")
+                continue
+        
+        
+        
+        if GoodsId in inventoryDict and DocTypeId==2:
+            goodsInv=inventoryDict[GoodsId]
 
-        print(inventory,"==============inventory+==================")
-    
-        if  isinstance(inventory,bool):
-            
+            inv=int(Quantity)+int(goodsInv)
             insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryTO)",
-                                values=f"( {int(id)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {Quantity} )")
+                            values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {inv} )")
         
-        elif isinstance(inventory,dict):
-
-            inventory=inventory.get('goodsInventory')
-
-            goodsinv=int(inventoryGoods(inventory,goods))
-            newinv=int(Quantity)-int(goodsinv)
-            insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryFrom,InventoryTO)",
-                                values=f"( {int(id)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {newinv} ,{newinv})")
-
+        if GoodsId in inventoryDict and DocTypeId==1:
+            goodsInv=inventoryDict[GoodsId]
+            inv=int(goodsInv)-int(Quantity)
+            insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryFrom)",
+                            values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {inv} )")
         
-
-        
+        if inventory2 != None :
+            goodsInv=inventoryDict[GoodsId]
+            invfrom = int(goodsInv)-int(Quantity)
             
-        
+            if inventory2 ==False:
+                print("ooooooooooooooooooin oooooooooooooooo in ooooooooooooooooin oooooooooooooin ")
+                insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryFrom,InventoryTO)",
+                            values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {invfrom} ,{Quantity} )")
+                continue
+
+
+            if GoodsId in inventoryDict2:
+                goodsInv2=inventoryDict[GoodsId]
+
+            invTo = int(goodsInv2)+int(Quantity)
+            
+            insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryFrom,InventoryTO)",
+                        values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {invfrom} ,{invTo} )")
     
 
-        
 
+            
+
+
+
+                
+
+
+
+           
+
+    
+
+def createDocquery(stockFrom,Stockto,transfereeUSER,senderUSER,goodsInfo):
+
+    if not stockFrom:
+        inventory=returnGoodsStock(Stockto)
+        print("inventory,=======================================================",inventory)
+        DocHeadertypeId=int(2)
+        id=insertTableValue(tablename='DocHeader',
+                        columnsName="(DocTypeId,DocCode,StockTo,TransfereeUSER)",
+                        values=f"({DocHeadertypeId},65,{Stockto},{transfereeUSER})")
+        
+        _checkInv(DocHeadertypeId,id,goodsInfo,inventory,None)
+
+
+    elif not Stockto:
+        inventory=returnGoodsStock(stockFrom)
+        DocHeadertypeId=int(1)
+        
+        id=insertTableValue(tablename='DocHeader',
+                        columnsName="(DocTypeId,DocCode,stockFrom,senderUSER)",
+                        values=f"({DocHeadertypeId},65,{stockFrom},{senderUSER})")
+        
+        _checkInv(DocHeadertypeId,id,goodsInfo,inventory,None)
+
+    else:
+        inventoryFrom=returnGoodsStock(stockFrom)
+        inventoryTo=returnGoodsStock(Stockto)
+        DocHeadertypeId=int(3)
+        id=insertTableValue(tablename='DocHeader',
+                        columnsName="(DocTypeId,DocCode,stockFrom,StockTo,senderUSER)",
+                        values=f"({DocHeadertypeId},65,{stockFrom},{Stockto},{senderUSER})")
+        print(inventoryTo,"===============inventory too==================")
+        
+      
+        
+        _checkInv(DocHeadertypeId,id,goodsInfo,inventoryFrom,inventoryTo)
+    
+    

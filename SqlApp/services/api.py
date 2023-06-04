@@ -424,7 +424,6 @@ def stockDetails(stockId:int):
 
 @app.post('/createDocTransfer')
 def createDocTransfer(item:CreateDoc):
-    
-    if not  item.StockFrom:
-        createDocquery(item.StockFrom,item.StockTo,item.TransfereeUser,item.SenderUse,1,item.GoodsInfo)
+    print("===========================================================")
+    createDocquery(item.StockFrom,item.StockTo,item.TransfereeUser,item.SenderUse,item.GoodsInfo)
 

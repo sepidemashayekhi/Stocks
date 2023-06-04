@@ -61,8 +61,8 @@ class GoodsGroupStock(BaseModel):
 class CreateDoc(BaseModel):
 
     StockFrom : int | None=None
-    StockTo : int 
-    TransfereeUser : int
+    StockTo : int  | None=None
+    TransfereeUser : int | None=None
     SenderUse : int | None=None
     GoodsInfo : list
 
