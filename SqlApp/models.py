@@ -6,6 +6,7 @@ conection=Conection()
 cursor=conection.cursor
 
 ##  Create Table in Data Base
+
 FactoryTable="""
 CREATE TABLE Factory(
     FactoryId BIGINT NOT NULL IDENTITY PRIMARY KEY ,
@@ -22,7 +23,7 @@ CREATE TABLE Stock(
     StockId BIGINT NOT NULL IDENTITY PRIMARY KEY,
     FactoryId BIGINT FOREIGN KEY REFERENCES Factory(FactoryId),
     Title NVARCHAR(100) NULL,
-    StockCode BIGINT NOT NULL UNIQUE,
+    StockCode NVARCHAR(100) NOT NULL UNIQUE,
     IsActive BIT DEFAULT 1,
     StockAddress NVARCHAR(250) NULL ,
     PhoneNumber VARCHAR(20) NULL ,
@@ -84,7 +85,7 @@ CREATE TABLE UnitType(
 goodsGroupTable="""
 CREATE TABLE GoodsGroup(
     GoodsGroupId BIGINT NOT NULL PRIMARY KEY IDENTITY ,
-    Title NVARCHAR(50) NOT NULL UNIQUE,
+    Title NVARCHAR(150) NOT NULL UNIQUE,
     IsActive BIT DEFAULT 1,
     ParentId BIGINT FOREIGN KEY REFERENCES GoodsGroup(GoodsGroupId) NUll
     );
@@ -103,6 +104,7 @@ CREATE TABLE Goods(
 
 goodsUnitTable="""
 CREATE TABLE GoodsUnit(
+    GoodsUnitId BIGINT PRIMARY KEY NOT NULL IDENTITY,
     GoodsId BIGINT FOREIGN KEY REFERENCES Goods(GoodsId),
     UnitTypeId BIGINT FOREIGN KEY REFERENCES UnitType(UnitTypeId),
     IsActive BIT DEFAULT 1
@@ -121,24 +123,23 @@ CREATE TABLE Doctype(
 
 
 
-docHeaderTypeTable="""
-CREATE TABLE DocHeaderType(
-    DocHeaderTypeId BIGINT NOT NULL IDENTITY PRIMARY KEY,
-    DocTypeId BIGINT FOREIGN KEY REFERENCES DocType(DocTypeId),
-    Title NVARCHAR(50) NOT NULL UNIQUE,
-    IsActive BIT DEFAULT 1,
-    );
-"""
+# docHeaderTypeTable="""
+# CREATE TABLE DocHeaderType(
+#     DocHeaderTypeId BIGINT NOT NULL IDENTITY PRIMARY KEY,
+#     DocTypeId BIGINT FOREIGN KEY REFERENCES DocType(DocTypeId),
+#     Title NVARCHAR(50) NOT NULL UNIQUE,
+#     IsActive BIT DEFAULT 1,
+#     );
+# """
 
 
 
 docHeaderTable="""
 CREATE TABLE DocHeader(
     DocHeaderId BIGINT NOT NULL IDENTITY PRIMARY KEY,
-    DocHeadertypeId BIGINT FOREIGN KEY REFERENCES DocHeaderType(DocHeaderTypeId),
-    DocCode NVARCHAR(150) UNIQUE NOT NULL,
+    DocTypeId  BIGINT FOREIGN KEY REFERENCES DocType(DocTypeId),
+    DocCode NVARCHAR(150)  NOT NULL,
     DocDate DATETIME DEFAULT GETDATE(),
-    StockPeriodId BIGINT FOREIGN KEY REFERENCES StockPeriod(StockPeriodId),
     StockFrom BIGINT FOREIGN KEY REFERENCES Stock(StockId) NULL,
     StockTo BIGINT FOREIGN KEY REFERENCES Stock(StockId),
     TransfereeUSER BIGINT FOREIGN KEY REFERENCES StockClerck(StockClerckId),
@@ -157,9 +158,10 @@ CREATE TABLE DocItem(
     DocItemId BIGINT NOT NULL PRIMARY KEY IDENTITY ,
     DocHeaderId BIGINT FOREIGN KEY REFERENCES DocHeader(DocHeaderId),
     GoodsId BIGINT FOREIGN KEY REFERENCES Goods(GoodsId),
-    GoodsUnitId BIGINT FOREIGN KEY REFERENCES GoodsUnit(GoodsUnitId),L
-    Quantity VARCHAR(50) NOT NULL,
-    Inventory VARCHAR(50) NOT NULL,
+    GoodsUnitId BIGINT FOREIGN KEY REFERENCES GoodsUnit(GoodsUnitId),
+    Quantity VARCHAR(100) NOT NULL,
+    InventoryFrom VARCHAR(50)  NULL,
+    InventoryTO VARCHAR(50) NULL,
     CreatorUser NVARCHAR(150) NULL,
     CreateDate DATETIME DEFAULT GETDATE(),
     ModifierUser NVARCHAR(150) NULL,
@@ -184,11 +186,9 @@ CREATE TABLE GoodsGroupStock(
 
 
 
-querySintacs =FactoryTable+StockTable+StockPeriodtable+cherckTable+unitType\
-    +goodsGroupTable+goodsTable+goodsUnitTable+docTypeTable+docHeaderTypeTable\
-    +docHeaderTable+docItemTable+goodsGroupStock
+querySintacs =FactoryTable+StockTable+StockPeriodtable+cherckTable+unitType+goodsGroupTable+\
+                goodsTable+goodsUnitTable+docHeaderTable+docItemTable+goodsGroupStock
 
 cursor.execute(querySintacs)
 cursor.commit()
 conection.closedConection
-

@@ -2,3 +2,4 @@ fastapi[all]
 pyodbc
 pandas
 persian
+persiantools

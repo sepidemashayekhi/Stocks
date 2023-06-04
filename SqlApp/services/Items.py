@@ -56,14 +56,6 @@ class GoodsGroupStock(BaseModel):
     goosGroupId : int
     discription : str
     
-class DocHeader(BaseModel):
-
-    docHeaderTypeId: int
-    stockFrom : int
-    stockTo : int
-
-    transfereeUser : int
-    senderUser : int
 
 
 class CreateDoc(BaseModel):

@@ -6,9 +6,10 @@ from fastapi.responses import JSONResponse
 import json
 import pandas as pd
 import persian
+from persiantools import characters
 
 from  services.Items import GoudsGroupItem , Goods , UnitTyp , GoodsUnitType , Factory , Stock , \
-    stockPeriodItem , StockClerck , docType , Docheadertype , GoodsGroupStock , DocHeader ,CreateDoc
+    stockPeriodItem , StockClerck , docType , Docheadertype , GoodsGroupStock  ,CreateDoc
 
 from services.functions import getId , insertTableValue , getMax , returenAll , returnWithCondition ,returnGoodsStock , createDocquery
 from services.errorConfig import errorList
@@ -30,11 +31,14 @@ returnData={
 @app.post('/goodsGroup')
 def goodsGroup(item:GoudsGroupItem,response:Response):
 
-    result=insertTableValue(tablename='GoodsGroup',columnsName='(Title)',values=f"(N'{item.title}')")
+    title=persian.convert_en_characters(item.title)
+
+    result=insertTableValue(tablename='GoodsGroup',columnsName='(Title)',values=f"(N'{title}')")
 
     if result:
         # print(errorList[110])
         returnData['message']=errorList[100]
+        returnData['data']=None
         returnData['code']=201
         returnData['success']=True
         response.status_code=status.HTTP_201_CREATED
@@ -42,6 +46,7 @@ def goodsGroup(item:GoudsGroupItem,response:Response):
         return returnData
     
     returnData['message']=errorList[101]
+    returnData['data']=None
     returnData['code']=400
     returnData['success']=False
     response.status_code=status.HTTP_400_BAD_REQUEST
@@ -58,6 +63,7 @@ def goods(item:Goods,response:Response):
     if not result:
         
         returnData['message']=errorList[101]
+        returnData['data']=None
         returnData['code']=400
         returnData['success']=False
         response.status_code=status.HTTP_400_BAD_REQUEST
@@ -65,6 +71,7 @@ def goods(item:Goods,response:Response):
         return returnData
 
     returnData['message']=errorList[100]
+    returnData['data']=None
     returnData['code']=201
     returnData['success']=True    
     response.status_code=status.HTTP_201_CREATED
@@ -79,12 +86,14 @@ def unitType(item:UnitTyp,response:Response):
                             values=f"( N'{item.title}' , {item.coefficient} ,{int(item.isPramary) } ,{ int(item.isDefault)} )" )
     if not result:
         returnData['message']=errorList[101]
+        returnData['data']=None
         returnData['code']=400
         returnData['success']=False
         response.status_code=status.HTTP_400_BAD_REQUEST
         return returnData
         
     returnData['message']=errorList[100]
+    returnData['data']=None
     returnData['code']=201
     returnData['success']=True    
     response.status_code=status.HTTP_201_CREATED
@@ -99,12 +108,14 @@ def goodsUnitType(item:GoodsUnitType,response:Response):
     result=insertTableValue(tablename='GoodsUnit',columnsName='(GoodsId,UnitTypeId)',values=(item.goodsId,item.unitTypeId))
     if not result:
         returnData['message']=errorList[101]
+        returnData['data']=None
         returnData['code']=400
         returnData['success']=False
         response.status_code=status.HTTP_400_BAD_REQUEST
         return  returnData
     
     returnData['message']=errorList[100]
+    returnData['data']=None
     returnData['code']=201
     returnData['success']=True    
     response.status_code=status.HTTP_201_CREATED
@@ -317,8 +328,8 @@ def valuesList(tablename , response:Response):
     return returnData
 
 
-@app.post('/docHeader')
-def docHeader(item:DocHeader , response:Response):
+# @app.post('/docHeader')
+# def docHeader(item:DocHeader , response:Response):
 
     dockCode=getMax(tableName="DocHeader",columnsName='DocHeaderId')
     dockCode=str(dockCode)
@@ -327,8 +338,8 @@ def docHeader(item:DocHeader , response:Response):
     
 
     result = insertTableValue(tablename='DocHeader' ,
-                              columnsName="(DocHeadertypeId , DocCode , StockPeriodId , StockFrom ,StockTo , TransfereeUSER , SenderUSER)" ,
-                              values=f"( {item.docHeaderTypeId} , {dockCode} , {StockPeriodId}  , {item.stockFrom} , {item.stockTo} , {item.transfereeUser} , {item.senderUser} )")
+                              columnsName="( DocCode , StockPeriodId , StockFrom ,StockTo , TransfereeUSER , SenderUSER)" ,
+                              values=f"( {dockCode} , {StockPeriodId}  , {item.stockFrom} , {item.stockTo} , {item.transfereeUser} , {item.senderUser} )")
     if not result:
         returnData['message']=errorList[102]
         returnData['code']=400
@@ -415,5 +426,5 @@ def stockDetails(stockId:int):
 def createDocTransfer(item:CreateDoc):
     
     if not  item.StockFrom:
-        createDocquery(2,item.StockTo,item.TransfereeUser,item.SenderUse,item.GoodsInfo)
+        createDocquery(item.StockFrom,item.StockTo,item.TransfereeUser,item.SenderUse,1,item.GoodsInfo)
 
