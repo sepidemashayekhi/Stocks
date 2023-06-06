@@ -4,6 +4,7 @@ import time
 import jdatetime 
 from persiantools.jdatetime import JalaliDate
 import datetime
+
 conect=Conection()
 
 
@@ -22,7 +23,7 @@ def insertTableValue(tablename:str, columnsName, values):
     queryStr=f"""
     INSERT INTO {tablename} {columnsName} OUTPUT INSERTED.{tablename}Id VALUES {values} ;
     """
-    # print(queryStr,"===========")
+    print(queryStr,"===========")
     # try:
     if True:
         conect.cursor.execute(queryStr)
@@ -64,7 +65,13 @@ def returenAll(tableName,pk):
         data = pd.read_sql_query(queyStr,conect.cnxn)
     except: 
         return False
-    return data
+    results=[]
+    # data_=[data.iloc[i].to_dict for i in range(len(data.index))]
+    for i in range(len(data.index)):
+        result=data.iloc[i].to_dict()
+        results.append(result)
+    
+    return results
 
 
 def returnWithCondition(tableName :str ,title , condition :str):
@@ -77,142 +84,88 @@ def returnWithCondition(tableName :str ,title , condition :str):
 
 
 def returnGoodsStock(stockId,goodsId=None):
-    result=[]
-    querStr=f"""
-    SELECT TOP 1
-    DocHeaderId,
-    CASE 
-        WHEN StockTO = {stockId} THEN 'InventoryTo' 
-        WHEN StockFrom = {stockId} THEN 'InventoryFrom'
-        ELSE 'not found'
-    END AS result
-    FROM DocHeader
-    WHERE 
-    (StockTO = {stockId} OR StockFrom = {stockId})
-    ORDER BY DocHeaderId DESC;
+
+    queryStr=f"""
+    EXEC StockGoodsInventory
+    @StockId={stockId}
     """
+    data=pd.read_sql(queryStr,conect.cnxn)
+    data=[data.iloc[i].to_dict() for i in range(len(data.index))]
+    return data
 
-    
-    try:
-        finalDocHeaderId=pd.read_sql_query(querStr,conect.cnxn)
-        HeaderId=finalDocHeaderId.iloc[0,0]
-        typeStock=finalDocHeaderId.iloc[0,1]
-        print(typeStock,"==========================ID OF HEADER==================",HeaderId)
-    except:
-        return False
-    
-    print(finalDocHeaderId,"final header +===================================")
-    
-    print(goodsId==None,"====================goooooooooooooooooooods+==========")
-    if goodsId:
-        querStr=f"""
-        SELECT GoodsId,{typeStock} FROM DocItem 
-        WHERE DocHeaderId={HeaderId} and GoodsId={goodsId};
-        """
-    
-    elif  goodsId==None:
-        querStr=f"""
-        SELECT GoodsId,{typeStock} FROM DocItem 
-        WHERE DocHeaderId={HeaderId} ;
-        """
-    
-    try:
-    # if True:
-        data=pd.read_sql_query(querStr,conect.cnxn)
-    except:
-        return False
-    
-    
-    for i in range(len(data.index)):
-        re=[]
-        goodID=data.iloc[i,0]
-        goodsditale=returnWithCondition(tableName='Goods',title=goodID , condition='GoodsId')
-        goodsditale=goodsditale.iloc[0].to_dict()
-        goodInv=data.iloc[i,1]
 
-        goodsditale['goodInv']=int(goodInv)
-        re.append(goodsditale)
-        result.append(re[0])
-        
-    
+def _checkGroup(stockId):
+    queryStr="""
+    SElECT DISTINCT GoodsId FROM Goods
+    INNER JOIN GoodsGroupStock ON GoodsGroupStock.GoodSGroupId=Goods.GoodsGroupId 
+    AND GoodsGroupStock.StockId=1
+    ;
+    """
+    data=pd.read_sql(queryStr,conect.cnxn)
+    if not len(data.index):
+        return []
+    result=[list(data.iloc[i].to_dict().values())[0] for i in range(len(data.index))]
     return result
 
 
 def _checkInv(DocTypeId,DocHeaderId,goodsInfo,inventory,inventory2):
 
-    if isinstance(inventory,dict):
-        inventoryDict={}
-        for item in inventory.get("goodsInventory"):
-            inventoryDict[item['GoodsId']]=item['goodInv']
     
-    if isinstance(inventory2,dict):
+    if inventory:
+        inventoryDict={}
+        for item in inventory:
+            inventoryDict[item['GoodsId']]=item['Inventory']
+    # print(inventory2,"==================tttttttttttttttttttttttt=================t")
+    if inventory2:
         inventoryDict2={}
-        for item in inventory2.get("goodsInventory"):
-            inventoryDict2[item['GoodsId']]=item['goodInv'] 
-        
+        for item in inventory2:
+            inventoryDict2[item['GoodsId']]=item['Inventory']
+
+
     for goods in goodsInfo:
-       
+        
         GoodsId=goods.get("GoodsId")
         Quantity=goods.get('Quantity')
         GoodsUnit=goods.get('GoodsUnitId')
        
-        if not inventory  and DocTypeId !=3:
-                
-                insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryTO)",
-                                    values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {Quantity} )")
-                continue
         
-        
-        
-        if GoodsId in inventoryDict and DocTypeId==2:
-            goodsInv=inventoryDict[GoodsId]
-
+        if DocTypeId==1 and (GoodsId in inventoryDict2)  :
+            
+            goodsInv=inventoryDict2[GoodsId]
+            print(goodsInv)
             inv=int(Quantity)+int(goodsInv)
-            insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryTO)",
+            insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,Inventory)",
                             values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {inv} )")
         
-        if GoodsId in inventoryDict and DocTypeId==1:
+        
+        if DocTypeId==2 and  GoodsId in inventoryDict :
             goodsInv=inventoryDict[GoodsId]
             inv=int(goodsInv)-int(Quantity)
-            insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryFrom)",
+            insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,Inventory)",
                             values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {inv} )")
         
-        if inventory2 != None :
-            goodsInv=inventoryDict[GoodsId]
-            invfrom = int(goodsInv)-int(Quantity)
-            
-            if inventory2 ==False:
-                print("ooooooooooooooooooin oooooooooooooooo in ooooooooooooooooin oooooooooooooin ")
-                insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryFrom,InventoryTO)",
-                            values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {invfrom} ,{Quantity} )")
-                continue
 
-
-            if GoodsId in inventoryDict2:
-                goodsInv2=inventoryDict[GoodsId]
-
-            invTo = int(goodsInv2)+int(Quantity)
-            
-            insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,InventoryFrom,InventoryTO)",
-                        values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {invfrom} ,{invTo} )")
-    
+        
+        
 
 def createDocquery(stockFrom,Stockto,transfereeUSER,senderUSER,goodsInfo):
 
     if not stockFrom:
         inventory=returnGoodsStock(Stockto)
         print("inventory,=======================================================",inventory)
-        DocHeadertypeId=int(2)
+        DocHeadertypeId=int(1)
         id=insertTableValue(tablename='DocHeader',
                         columnsName="(DocTypeId,DocCode,StockTo,TransfereeUSER)",
                         values=f"({DocHeadertypeId},65,{Stockto},{transfereeUSER})")
         
-        _checkInv(DocHeadertypeId,id,goodsInfo,inventory,None)
+        _checkInv(DocHeadertypeId,id,goodsInfo,None,inventory)
+
+        return id
 
 
     elif not Stockto:
         inventory=returnGoodsStock(stockFrom)
-        DocHeadertypeId=int(1)
+        DocHeadertypeId=int(2)
         
         id=insertTableValue(tablename='DocHeader',
                         columnsName="(DocTypeId,DocCode,stockFrom,senderUSER)",
@@ -220,18 +173,26 @@ def createDocquery(stockFrom,Stockto,transfereeUSER,senderUSER,goodsInfo):
         
         _checkInv(DocHeadertypeId,id,goodsInfo,inventory,None)
 
+        return id
+
     else:
         inventoryFrom=returnGoodsStock(stockFrom)
         inventoryTo=returnGoodsStock(Stockto)
-        DocHeadertypeId=int(3)
+
+        
         id=insertTableValue(tablename='DocHeader',
-                        columnsName="(DocTypeId,DocCode,stockFrom,StockTo,senderUSER)",
-                        values=f"({DocHeadertypeId},65,{stockFrom},{Stockto},{senderUSER})")
-        print(inventoryTo,"===============inventory too==================")
+                        columnsName="(DocTypeId,DocCode,stockFrom,StockTo,senderUSER,TransfereeUser)",
+                        values=f"({1},65,{stockFrom},{Stockto},{senderUSER},{transfereeUSER})")
+        _checkInv(1,id,goodsInfo,inventoryFrom,inventoryTo)
         
-      
+        id=insertTableValue(tablename='DocHeader',
+                        columnsName="(DocTypeId,DocCode,stockFrom,StockTo,senderUSER,TransfereeUser)",
+                        values=f"({2},65,{stockFrom},{Stockto},{senderUSER},{transfereeUSER})")
         
-        _checkInv(DocHeadertypeId,id,goodsInfo,inventoryFrom,inventoryTo)
+        _checkInv(2,id,goodsInfo,inventoryFrom,inventoryTo)
+
+        return  id
+    
         
 
 def docHeaders(stockId):
@@ -241,11 +202,12 @@ def docHeaders(stockId):
     WHERE DocHeader.StockFrom={stockId} OR DocHeader.StockTO={stockId} ;
     """
     returnData=[]
-    try:
-    # if True:
+    # try:
+    if True:
         data=pd.read_sql_query(queryStr,conect.cnxn)
-    except:
-        return []
+    # except:
+    #     return []
+    
     
     for i in range(len(data.index)):
         re=data.iloc[i].to_dict()
@@ -261,65 +223,52 @@ def docHeaders(stockId):
 def docHeadersDetali(docHeaderId):
 
     queryStr=f"""
-    SELECT Doctype.Title,Stock.Title AS StockName,DocDate ,StockFrom,StockTo,SenderUSER,TransfereeUSER FROM DocHeader
-    INNER JOIN Stock ON DocHeader.StockFrom=Stock.StockId OR DocHeader.StockTo=Stock.StockId
-    INNER JOIN Doctype ON DocHeader.DocTypeId=DocType.DocTypeId
-    WHERE DocHeaderId={docHeaderId} ; 
+    select DISTINCT 
+    Goods.Title as  GoodsName,
+    Goods.GoodsId,DocHeader.DocTypeId,Doctype.Title,Quantity,UnitType.UnitTypeId,DocHeader.SenderUSER,
+    TransfereeUSER,StockFrom,StockTo,UnitType.Title as GoodsUnitTitle
+    from DocHeader
+    inner join DocItem on DocItem.DocHeaderId=DocHeader.DocHeaderId
+    inner join Doctype on Doctype.DocTypeId=DocHeader.DocTypeId
+    inner join GoodsUnit on GoodsUnit.GoodsId=DocItem.GoodsId
+    inner join UnitType on UnitType.UnitTypeId=GoodsUnit.UnitTypeId
+    inner join Goods on Goods.GoodsId=DocItem.GoodsId
+    where DocHeader.DocHeaderId={docHeaderId}; 
     """
-    try:
-        data=pd.read_sql_query(queryStr,conect.cnxn)
-    except:
-        return []
+    returnDate={'goods':[]}
     
-
-    returnDate={}
-
-    for i in range(len(data)):
+    data=pd.read_sql_query(queryStr,conect.cnxn)
+    
+    # if len(data.index):
+    print(data,"00000000000000000000000000000000")
+    for i in range((len(data.index))):
         result=data.iloc[i].to_dict()
-        if i==1:
-            if result['SenderUSER']:
-                returnDate['SenderUSER']=returenAll(tableName='StockClerck',pk=result['SenderUSER']).iloc[0].to_dict()
-            else:
-                returnDate['SenderUSER']=None
-            
-            returnDate[f'stockFrom']=result['StockName']
-            returnDate[f'stockFromId']=result['StockFrom']
-        if result['TransfereeUSER']:
-            returnDate['TransfereeUSER']=returenAll(tableName='StockClerck',pk=result['TransfereeUSER']).iloc[0].to_dict()
-        else:
-            returnDate['TransfereeUSER']=None
-        returnDate[f'StockTo']=result['StockName']
-        returnDate[f'StockToId']=result['StockTo']
-    returnDate['headerTtype']=result['Title']
-
-
-    queryStr=f"""
-    SELECT 
-    Goods.Title AS GoodsName,
-    Goods.GoodsId AS GoodsID,
-    InventoryFrom,InventoryTO,UnitType.Title,Quantity
-    FROM DocItem
-    INNER JOIN Goods ON Goods.GoodsId=DocItem.GoodsId
-    INNER JOIN DocHeader ON DocHeader.DocHeaderId=DocItem.DocHeaderId
-    INNER JOIN GoodsUnit ON GoodsUnit.GoodsUnitId=DocItem.GoodsUnitId
-    INNER JOIN UnitType ON GoodsUnit.UnitTypeId=UnitType.UnitTypeId
-    WHERE DocItem.DocHeaderId={docHeaderId};
-    """
-    try:
-        data=pd.read_sql_query(queryStr,conect.cnxn)
-    except:
-        return []
-    returnDate['Goods']=[]
-    
-    for i in range(len(data.index)):
         re={}
-        result=data.iloc[i].to_dict()
-        for item in result:
-            re[item]=result.get(item)            
-        returnDate['Goods'].append(re)
+        re["goodName"]=result['GoodsName']
+        re['goodsId']=result['GoodsId']
+        re['Quantity']=result['Quantity']
+        re['GoodUnitName']=result['GoodsUnitTitle']
+        re['GoodUnitId']=result['UnitTypeId']
+        returnDate['goods'].append(re)
+        
     
+    
+    
+    returnDate['doctype']=result['Title']
+    returnDate['doctypeId']=result['DocTypeId']
+    a={'TransfereeUSER':'StockClerck','SenderUSER':'StockClerck','StockFrom':'Stock','StockTo':'Stock'}
+    for item in a:
+        print(result[item],item,"=================")
+        if  result[item]:
+            returnDate[item]=returenAll(tableName=a[item],pk=result[item])[0]
+        else:
+            returnDate[item]=None
+    
+    returnDate['docHeaderId']=docHeaderId
 
-    return  returnDate
+    
+    
+    return returnDate
 
 
 def docHeaderFilter(DateFrom:str,DateTo:str):
@@ -352,3 +301,26 @@ def docHeaderFilter(DateFrom:str,DateTo:str):
 
     return rows
 
+
+
+def clerckDetail(clerckId:int):
+
+    querySrt=f"""
+    SELECT StockClerckId,StockClerck.StockId,FullName,PersonalCode,
+    Stock.Title AS StockName,Stock.StockId
+    FROM StockClerck
+    INNER JOIN Stock ON Stock.StockId=StockClerck.StockId
+    WHERE StockClerckId={clerckId};
+    """
+
+    data=pd.read_sql(querySrt,conect.cnxn)
+    if not len(data.index):
+        return False
+    
+    result=[data.iloc[i].to_dict() for i in range(len(data.index))][0]
+
+    return result
+
+
+# EXEC StockGoodsInventoty
+# @StockId=1

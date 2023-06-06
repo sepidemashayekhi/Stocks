@@ -11,13 +11,14 @@ class Goods(BaseModel):
 
 class UnitTyp(BaseModel):
     title : str
-    coefficient : int
-    isPramary : bool
-    isDefault : bool
     
 class GoodsUnitType(BaseModel):
     goodsId : int
     unitTypeId : int
+    Coefficient :float
+    isPrimaty : bool
+
+    isDefault:bool
 
 class Factory(BaseModel):
     name:str
@@ -64,7 +65,7 @@ class CreateDoc(BaseModel):
     StockFrom : int | None=None
     StockTo : int  | None=None
     TransfereeUser : int | None=None
-    SenderUse : int | None=None
+    SenderUser : int | None=None
     GoodsInfo : list
 
 

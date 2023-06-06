@@ -36,8 +36,6 @@ CREATE TABLE Stock(
 """
 
 
-
-
 StockPeriodtable="""
 CREATE TABLE StockPeriod(
 	StockPeriodId BIGINT PRIMARY KEY IDENTITY NOT NULL,
@@ -73,10 +71,7 @@ unitType="""
 CREATE TABLE UnitType(
     UnitTypeId BIGINT PRIMARY KEY IDENTITY NOT NULL,
     Title NVARCHAR(50) NOT NULL UNIQUE,
-    IsActive BIT DEFAULT 1,
-    Coefficient INT NOT NULL,
-    IsPrimary BIT DEFAULT 0,
-    IsDefault BIT DEFAULT 0
+    IsActive BIT DEFAULT 1
     );
 """
 
@@ -107,6 +102,9 @@ CREATE TABLE GoodsUnit(
     GoodsUnitId BIGINT PRIMARY KEY NOT NULL IDENTITY,
     GoodsId BIGINT FOREIGN KEY REFERENCES Goods(GoodsId),
     UnitTypeId BIGINT FOREIGN KEY REFERENCES UnitType(UnitTypeId),
+    Coefficient float,
+    IsPrimary BIT DEFAULT 0,
+    IsDefault BIT DEFAULT 0,
     IsActive BIT DEFAULT 1
     );
 """
@@ -121,36 +119,22 @@ CREATE TABLE Doctype(
     );
 """
 
-
-
-# docHeaderTypeTable="""
-# CREATE TABLE DocHeaderType(
-#     DocHeaderTypeId BIGINT NOT NULL IDENTITY PRIMARY KEY,
-#     DocTypeId BIGINT FOREIGN KEY REFERENCES DocType(DocTypeId),
-#     Title NVARCHAR(50) NOT NULL UNIQUE,
-#     IsActive BIT DEFAULT 1,
-#     );
-# """
-
-
-
 docHeaderTable="""
 CREATE TABLE DocHeader(
     DocHeaderId BIGINT NOT NULL IDENTITY PRIMARY KEY,
     DocTypeId  BIGINT FOREIGN KEY REFERENCES DocType(DocTypeId),
     DocCode NVARCHAR(150)  NOT NULL,
     DocDate DATETIME DEFAULT GETDATE(),
+    StockTO BIGINT FOREIGN KEY REFERENCES Stock(StockId)  NULL,
     StockFrom BIGINT FOREIGN KEY REFERENCES Stock(StockId) NULL,
-    StockTo BIGINT FOREIGN KEY REFERENCES Stock(StockId),
-    TransfereeUSER BIGINT FOREIGN KEY REFERENCES StockClerck(StockClerckId),
-    SenderUSER BIGINT FOREIGN KEY REFERENCES StockClerck(StockClerckId),
+    TransfereeUSER BIGINT FOREIGN KEY REFERENCES StockClerck(StockClerckId) Null,
+    SenderUSER BIGINT FOREIGN KEY REFERENCES StockClerck(StockClerckId) Null,
     CreatorUser NVARCHAR(150) NULL,
     CreateDate DATETIME DEFAULT GETDATE(),
     ModifierUser NVARCHAR(150) NULL,
     Modifierdate DATETIME NULL,
     );
 """
-
 
 
 docItemTable="""
@@ -160,15 +144,13 @@ CREATE TABLE DocItem(
     GoodsId BIGINT FOREIGN KEY REFERENCES Goods(GoodsId),
     GoodsUnitId BIGINT FOREIGN KEY REFERENCES GoodsUnit(GoodsUnitId),
     Quantity VARCHAR(100) NOT NULL,
-    InventoryFrom VARCHAR(50)  NULL,
-    InventoryTO VARCHAR(50) NULL,
+    Inventory VARCHAR(50)  ,
     CreatorUser NVARCHAR(150) NULL,
     CreateDate DATETIME DEFAULT GETDATE(),
     ModifierUser NVARCHAR(150) NULL,
     Modifierdate DATETIME NULL,
     );
 """
-
 
 goodsGroupStock="""
 CREATE TABLE GoodsGroupStock(
@@ -184,10 +166,10 @@ CREATE TABLE GoodsGroupStock(
     );
 """
 
-
-
 querySintacs =FactoryTable+StockTable+StockPeriodtable+cherckTable+unitType+goodsGroupTable+\
-                goodsTable+goodsUnitTable+docHeaderTable+docItemTable+goodsGroupStock
+                goodsTable+goodsUnitTable+docTypeTable+docHeaderTable+docItemTable+goodsGroupStock
+
+
 
 cursor.execute(querySintacs)
 cursor.commit()
