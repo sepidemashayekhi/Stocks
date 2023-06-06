@@ -7,11 +7,14 @@ import json
 import pandas as pd
 import persian
 from persiantools import characters
+import jdatetime
 
 from  services.Items import GoudsGroupItem , Goods , UnitTyp , GoodsUnitType , Factory , Stock , \
     stockPeriodItem , StockClerck , docType , Docheadertype , GoodsGroupStock  ,CreateDoc
 
-from services.functions import getId , insertTableValue , getMax , returenAll , returnWithCondition ,returnGoodsStock , createDocquery
+from services.functions import getId , insertTableValue , getMax , returenAll , returnWithCondition ,returnGoodsStock , \
+                                createDocquery ,docHeaders ,docHeadersDetali ,docHeaderFilter
+
 from services.errorConfig import errorList
 
 
@@ -153,9 +156,16 @@ def stock(item:Stock,response:Response):
     StockCode=getMax(tableName='Stock',columnsName='StockId')
     StockCode=100 + int(StockCode)
 
-    result=insertTableValue(tablename="stock",columnsName="(Title,FactoryId,StockAddress,StockDescription,PhoneNumber,StockCode, CreatUser)",
+    id=insertTableValue(tablename="stock",columnsName="(Title,FactoryId,StockAddress,StockDescription,PhoneNumber,StockCode, CreatUser)",
                             values=f"(N'{item.title}' , {item.factoryId} ,N'{item.address}',N'{item.description}',{item.phoneNumber},{StockCode}, 'Admin' )")
-    if not result:
+    
+    for GoodSGroupId in item.goodsGroup:
+        
+        re=insertTableValue(tablename='GoodsGroupStock',columnsName="(StockId,GoodSGroupId)",
+                            values=f"({id} , {GoodSGroupId})")
+    
+    
+    if not id:
         returnData['message']=errorList[101]
         returnData['data']=None
         returnData['code']=400
@@ -291,11 +301,11 @@ def goodsGroupStock(item:GoodsGroupStock , response:Response):
     
 
 @app.get('/valuesList')
-def valuesList(tablename , response:Response):
+def valuesList(dataRequest ,response:Response,id:int| None=None ):
 
-    results={f'{tablename}':[]}
-    data=returenAll(tableName=tablename)
-    
+    results=[]
+    data=returenAll(tableName=dataRequest,pk=id)
+
     if isinstance(data,bool):
         
         returnData['message']=errorList[103]
@@ -309,10 +319,10 @@ def valuesList(tablename , response:Response):
     for i in range(len(data.index)):
         
         result=data.iloc[i].to_dict()
-        results[f'{tablename}'].append(result)
+        results.append(result)
 
 
-    if not results[f'{tablename}']:
+    if not results:
         returnData['message']=errorList[102]
         returnData['code']=400
         returnData['data']=None
@@ -392,30 +402,59 @@ def clerckStockList(stockId,response:Response):
 
 
 @app.get('/stockDetails')
-def stockDetails(stockId:int):
+def stockDetails(stockId:int,response:Response):
+
+    stockDetail=returnWithCondition(tableName='Stock',title=stockId,condition="StockId")
+    try:
+        stockDetail=[stockDetail.iloc[i].to_dict() for i in range(len(stockDetail.index))][0]
+    except:
+        returnData['message']=errorList[102]
+        returnData['code']=400
+        returnData['data']=None
+        returnData['success']=False
+        response.status_code=status.HTTP_400_BAD_REQUEST
+        return returnData
     
+    GoodSGroup=[]
+    stockGoodsGroup=returnWithCondition(tableName='GoodsGroupStock', title=stockId, condition='StockId')
+    stockGoodsGroupDetails=[stockGoodsGroup.iloc[i].to_dict() for i in range(len(stockGoodsGroup.index))]
+    for stockGoodsGroupDetail in stockGoodsGroupDetails:
+        GoodSGroupDetail=returnWithCondition(tableName='GoodsGroup',title=stockGoodsGroupDetail['GoodSGroupId'] , condition='GoodSGroupId')
+        GoodSGroupDetail=[GoodSGroupDetail.iloc[i].to_dict() for i in range(len(GoodSGroupDetail.index))][0]
+        GoodSGroup.append(GoodSGroupDetail)
+
+
+    DocHeaders=docHeaders(stockId)
+
+
     clerckList=returnWithCondition(tableName='StockClerck', title=stockId , condition="StockId" )
-    clerckListDict={"clerck":[]}
+    clerckListDict=[]
     for i in range(len(clerckList.index)):
         re=clerckList.iloc[i]
-        clerckListDict['clerck'].append(re.to_dict())
+        clerckListDict.append(re.to_dict())
 
     
     inventoryGoods=returnGoodsStock(stockId)
 
     stocksPriod=returnWithCondition(tableName='StockPeriod',title=stockId,condition='StockId')
-    stocksPriodName=stocksPriod.iloc[0].values[2]
-    stocksPriodId=stocksPriod.iloc[0].values[0]
+    try:
+        stocksPriodName=stocksPriod.iloc[0].values[2]
+        stocksPriodId=stocksPriod.iloc[0].values[0]
+        stocksPriodJson={
+            "stocksPriodId":int(stocksPriodId),
+            "stocksPriodName":stocksPriodName
+        }
+    except:
+        stocksPriodJson=None
     
-    stocksPriodJson={
-        "stocksPriodId":int(stocksPriodId),
-        "stocksPriodName":stocksPriodName
-    }
     
     data={
+        "stockDetail":stockDetail,
         'clercks':clerckListDict,
         "inventoryGoods":inventoryGoods,
-        "stocksPriod":stocksPriodJson
+        "stocksPriod":stocksPriodJson,
+        "stockGoodsGroupDetails":GoodSGroup,
+        "DocHeaders":DocHeaders
     
     }
 
@@ -426,4 +465,53 @@ def stockDetails(stockId:int):
 def createDocTransfer(item:CreateDoc):
     print("===========================================================")
     createDocquery(item.StockFrom,item.StockTo,item.TransfereeUser,item.SenderUse,item.GoodsInfo)
+
+
+
+@app.get('/docheaderDitail')
+def docheaderDitail(docheaderId,response:Response):
+    
+    data=docHeadersDetali(docheaderId)
+    if not len(data):
+        returnData['message']=errorList[102]
+        returnData['code']=400
+        returnData['data']=None
+        returnData['success']=False
+        response.status_code=status.HTTP_400_BAD_REQUEST
+        return returnData
+
+    # date=data['DocDate']
+
+    # j_date=jdatetime.datetime.fromgregorian( year=date.year , month=date.month , day=date.day , hour=date.hour , minute=date.minute)
+    # j_date=str(j_date).replace('-','/')
+    # data['DocDate']=j_date
+
+    returnData['message']=errorList[100]
+    returnData['data']=data
+    returnData['code']=200
+    returnData['success']=True    
+    response.status_code=status.HTTP_200_OK
+    return returnData
+
+
+@app.get('/headerDateFilter')
+def headerDateFilter(datefrom,dateTo,response:Response):
+    result=docHeaderFilter(datefrom,dateTo)
+
+    if not result:
+        returnData['message']=errorList[102]
+        returnData['code']=400
+        returnData['data']=None
+        returnData['success']=False
+        response.status_code=status.HTTP_400_BAD_REQUEST
+        return returnData
+    
+
+    returnData['message']=errorList[100]
+    returnData['data']=result
+    returnData['code']=200
+    returnData['success']=True    
+    response.status_code=status.HTTP_200_OK
+    return returnData
+
 

@@ -30,7 +30,8 @@ class Stock(BaseModel):
     address: str
     phoneNumber :str
     description :str
-
+    goodsGroup : list
+    
 class stockPeriodItem(BaseModel):
     title : str
     stockId: int
