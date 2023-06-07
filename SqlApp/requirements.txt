@@ -1,0 +1,7 @@
+fastapi[all]
+pyodbc
+pandas
+persian
+persiantools
+jdatetime
+numpy 

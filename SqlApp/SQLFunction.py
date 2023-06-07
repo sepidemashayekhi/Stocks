@@ -6,7 +6,7 @@ conect=Conection()
 queryStrGetInventory="""
 --CREATE FUNCTION [dbo].[GetInventory]
 
-ALTER FUNCTION [dbo].[GetInventory]
+CREATE FUNCTION [dbo].[GetInventory]
 (
     @GoodsID BIGINT,
     @StockID BIGINT
@@ -64,7 +64,7 @@ END
 
 quryStrStockGoodsInventory="""
 
-ALTER PROCEDURE StockGoodsInventory
+CREATE PROCEDURE StockGoodsInventory
 (
     @stockId bigint 
 )

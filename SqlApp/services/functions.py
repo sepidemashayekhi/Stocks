@@ -24,6 +24,9 @@ def insertTableValue(tablename:str, columnsName, values):
     INSERT INTO {tablename} {columnsName} OUTPUT INSERTED.{tablename}Id VALUES {values} ;
     """
     print(queryStr,"===========")
+
+
+    
     # try:
     if True:
         conect.cursor.execute(queryStr)
@@ -129,6 +132,7 @@ def _checkInv(DocTypeId,DocHeaderId,goodsInfo,inventory,inventory2):
         GoodsUnit=goods.get('GoodsUnitId')
        
         
+
         if DocTypeId==1 and (GoodsId in inventoryDict2)  :
             
             goodsInv=inventoryDict2[GoodsId]
@@ -141,6 +145,8 @@ def _checkInv(DocTypeId,DocHeaderId,goodsInfo,inventory,inventory2):
         if DocTypeId==2 and  GoodsId in inventoryDict :
             goodsInv=inventoryDict[GoodsId]
             inv=int(goodsInv)-int(Quantity)
+            if inv<0:
+                continue
             insertTableValue(tablename='DocItem' , columnsName="(DocHeaderId,GoodsId,GoodsUnitId,Quantity,Inventory)",
                             values=f"( {int(DocHeaderId)}  , {GoodsId} , {GoodsUnit} , {Quantity} , {inv} )")
         
@@ -160,7 +166,7 @@ def createDocquery(stockFrom,Stockto,transfereeUSER,senderUSER,goodsInfo):
         
         _checkInv(DocHeadertypeId,id,goodsInfo,None,inventory)
 
-        return id
+        return [id,None]
 
 
     elif not Stockto:
@@ -173,25 +179,25 @@ def createDocquery(stockFrom,Stockto,transfereeUSER,senderUSER,goodsInfo):
         
         _checkInv(DocHeadertypeId,id,goodsInfo,inventory,None)
 
-        return id
+        return [None,id]
 
     else:
         inventoryFrom=returnGoodsStock(stockFrom)
         inventoryTo=returnGoodsStock(Stockto)
 
         
-        id=insertTableValue(tablename='DocHeader',
-                        columnsName="(DocTypeId,DocCode,stockFrom,StockTo,senderUSER,TransfereeUser)",
-                        values=f"({1},65,{stockFrom},{Stockto},{senderUSER},{transfereeUSER})")
-        _checkInv(1,id,goodsInfo,inventoryFrom,inventoryTo)
+        id1=insertTableValue(tablename='DocHeader',
+                        columnsName="(DocTypeId,DocCode,StockTo,TransfereeUSER)",
+                        values=f"({1},65,{Stockto},{transfereeUSER})")
         
-        id=insertTableValue(tablename='DocHeader',
-                        columnsName="(DocTypeId,DocCode,stockFrom,StockTo,senderUSER,TransfereeUser)",
-                        values=f"({2},65,{stockFrom},{Stockto},{senderUSER},{transfereeUSER})")
+        _checkInv(1,id1,goodsInfo,None,inventoryTo)
         
-        _checkInv(2,id,goodsInfo,inventoryFrom,inventoryTo)
-
-        return  id
+        id2=insertTableValue(tablename='DocHeader',
+                        columnsName="(DocTypeId,DocCode,stockFrom,senderUSER)",
+                        values=f"({2},65,{stockFrom},{senderUSER})")
+        
+        _checkInv(2,id2,goodsInfo,inventoryFrom,None)
+        return  [id1,id2]
     
         
 

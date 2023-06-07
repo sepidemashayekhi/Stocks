@@ -451,11 +451,14 @@ def stockDetails(stockId:int,response:Response):
 def createDocTransfer(item:CreateDoc,response:Response):
     
     docheaderId=createDocquery(item.StockFrom,item.StockTo,item.TransfereeUser,item.SenderUser,item.GoodsInfo)
-
-    result=docHeadersDetali(docheaderId)
+    data=[]
+    for id in docheaderId:
+        if id:
+            result=docHeadersDetali(id)
+            data.append(result)
     
     returnData['message']=errorList[100]
-    returnData['data']=result
+    returnData['data']=data
     returnData['code']=200
     returnData['success']=True    
     response.status_code=status.HTTP_200_OK
